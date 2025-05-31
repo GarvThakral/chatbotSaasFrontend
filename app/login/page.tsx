@@ -6,6 +6,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Bot, Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react'
+import axios from "axios"
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -18,12 +19,11 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      // Handle login logic here
-    }, 2000)
+    const response = await axios.post(`${process.env.NEXT_PUBLIC_API_ROUTE}/user/login`,{
+        email:formData.email,
+        password:formData.password
+    })
+    console.log(response)
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
