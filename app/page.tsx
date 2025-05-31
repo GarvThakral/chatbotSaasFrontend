@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useState, useEffect } from "react"
+import Link from "next/link"
 
 export default function LandingPage() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -96,12 +97,17 @@ export default function LandingPage() {
             </div>
 
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" className="text-gray-300 hover:text-white">
-                Login
-              </Button>
-              <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600">
-                Get Started
-              </Button>
+              <Link href = "/login">
+                <Button variant="ghost" className="text-gray-300 hover:text-white">
+                  Login
+                </Button>
+              </Link>
+              <Link href = "/signup">
+                <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600">
+                  Get Started
+                </Button>
+              </Link>
+
             </div>
           </div>
         </div>
