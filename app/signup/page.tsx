@@ -1,13 +1,13 @@
-
 "use client"
+
+import type React from "react"
 
 import { motion } from "framer-motion"
 import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Bot, Eye, EyeOff, Mail, Lock, User, Building, ArrowRight, Check } from 'lucide-react'
-import axios from "axios"
+import { Bot, Eye, EyeOff, Mail, Lock, User, Building, ArrowRight } from "lucide-react"
 
 export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -24,14 +24,12 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    
-    const response = await axios.post(`${process.env.NEXT_PUBLIC_API_ROUTE}user/signup`,{
-        name:formData.name,
-        email:formData.email,
-        company:formData.company,
-        password:formData.password
-    })
-    console.log(response)
+
+    // Simulate API call
+    setTimeout(() => {
+      setIsLoading(false)
+      // Handle signup logic here
+    }, 2000)
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,15 +72,11 @@ export default function SignupPage() {
       </div>
 
       <div className="relative z-10 w-full max-w-md">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           {/* Logo */}
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center space-x-2 group">
-              <motion.div 
+              <motion.div
                 className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center"
                 whileHover={{ scale: 1.05 }}
               >

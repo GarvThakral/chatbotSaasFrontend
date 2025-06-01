@@ -1,11 +1,14 @@
 "use client"
 
+import type React from "react"
+
 import { motion } from "framer-motion"
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Bot, Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react'
+import { Bot, Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react"
 import axios from "axios"
 
 export default function LoginPage() {
@@ -15,15 +18,31 @@ export default function LoginPage() {
     email: "",
     password: "",
   })
+  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    const response = await axios.post(`${process.env.NEXT_PUBLIC_API_ROUTE}/user/login`,{
+
+    try {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_ROUTE}user/login`,{
         email:formData.email,
         password:formData.password
-    })
-    console.log(response)
+      })
+
+      if (response.status == 200) {
+        const data = response.data
+        localStorage.setItem("token", data.token)
+        router.push("/demo")
+      } else {
+        alert("Login failed")
+      }
+    } catch (error) {
+      console.error("Login error:", error)
+      alert("Login failed. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,15 +84,11 @@ export default function LoginPage() {
       </div>
 
       <div className="relative z-10 w-full max-w-md">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           {/* Logo */}
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center space-x-2 group">
-              <motion.div 
+              <motion.div
                 className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center"
                 whileHover={{ scale: 1.05 }}
               >
@@ -180,6 +195,18 @@ export default function LoginPage() {
                   Sign up
                 </Link>
               </p>
+            </div>
+
+            {/* Demo Access */}
+            <div className="mt-6 pt-6 border-t border-white/10">
+              <div className="text-center">
+                <p className="text-sm text-gray-400 mb-3">Want to try it out first?</p>
+                <Link href="/demo">
+                  <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                    Get Demo Access
+                  </Button>
+                </Link>
+              </div>
             </div>
           </Card>
         </motion.div>

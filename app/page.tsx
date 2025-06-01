@@ -19,10 +19,40 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useState, useEffect } from "react"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 export default function LandingPage() {
+  const router = useRouter()
   const [isScrolled, setIsScrolled] = useState(false)
+
+  // Check if the user is logged in
+  const checkLoginStatus = () => {
+    return localStorage.getItem("token") !== null
+  }
+
+  // Handle "Try Demo" button click
+  const handleDemoClick = () => {
+    if (checkLoginStatus()) {
+      router.push("/demo")
+    } else {
+      router.push("/login")
+    }
+  }
+
+  // Handle "Buy Now" button click
+  const handleBuyClick = () => {
+    if (checkLoginStatus()) {
+      router.push("/billing") // Redirect to Razorpay billing
+    } else {
+      router.push("/login")
+    }
+  }
+
+  // Handle "Logout" button click
+  const handleLogout = () => {
+    localStorage.removeItem("token")
+    router.push("/")
+  }
 
   useEffect(() => {
     const handleScroll = () => {
@@ -39,27 +69,13 @@ export default function LandingPage() {
         <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-teal-900/20" />
         <motion.div
           className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl"
-          animate={{
-            x: [0, 100, 0],
-            y: [0, -50, 0],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Number.POSITIVE_INFINITY,
-            ease: "linear",
-          }}
+          animate={{ x: [0, 100, 0], y: [0, -50, 0] }}
+          transition={{ duration: 20, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
         />
         <motion.div
           className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/30 rounded-full blur-3xl"
-          animate={{
-            x: [0, -100, 0],
-            y: [0, 50, 0],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Number.POSITIVE_INFINITY,
-            ease: "linear",
-          }}
+          animate={{ x: [0, -100, 0], y: [0, 50, 0] }}
+          transition={{ duration: 25, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
         />
       </div>
 
@@ -82,7 +98,6 @@ export default function LandingPage() {
                 SmartBotly
               </span>
             </motion.div>
-
             <div className="hidden md:flex items-center space-x-8">
               {["Features", "Pricing", "Docs"].map((item) => (
                 <motion.a
@@ -95,19 +110,32 @@ export default function LandingPage() {
                 </motion.a>
               ))}
             </div>
-
             <div className="flex items-center space-x-4">
-              <Link href = "/login">
-                <Button variant="ghost" className="text-gray-300 hover:text-white">
-                  Login
-                </Button>
-              </Link>
-              <Link href = "/signup">
-                <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600">
-                  Get Started
-                </Button>
-              </Link>
-
+              {checkLoginStatus() ? (
+                <>
+                  <Button variant="ghost" className="text-gray-300 hover:text-white" onClick={handleLogout}>
+                    Logout
+                  </Button>
+                  <Button
+                    className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+                    onClick={() => router.push('/dashboard')}
+                  >
+                    Dashboard
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="ghost" className="text-gray-300 hover:text-white" onClick={() => router.push('/login')}>
+                    Login
+                  </Button>
+                  <Button
+                    className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+                    onClick={() => router.push('/signup')}
+                  >
+                    Get Started
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -132,7 +160,6 @@ export default function LandingPage() {
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                 <span className="text-sm text-gray-300">AI-Powered • Real-time Support</span>
               </motion.div>
-
               <div className="space-y-6">
                 <motion.h1
                   className="text-6xl lg:text-7xl font-bold leading-tight"
@@ -148,7 +175,6 @@ export default function LandingPage() {
                     Trained on Your Business
                   </span>
                 </motion.h1>
-
                 <motion.p
                   className="text-xl text-gray-300 max-w-lg leading-relaxed"
                   initial={{ opacity: 0, y: 20 }}
@@ -159,7 +185,6 @@ export default function LandingPage() {
                   your docs, embed anywhere, and watch your support scale.
                 </motion.p>
               </div>
-
               <motion.div
                 className="flex flex-col sm:flex-row gap-4"
                 initial={{ opacity: 0, y: 20 }}
@@ -167,6 +192,7 @@ export default function LandingPage() {
                 transition={{ delay: 0.5 }}
               >
                 <Button
+                  onClick={handleDemoClick}
                   size="lg"
                   className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8 py-4 text-lg group"
                 >
@@ -174,15 +200,15 @@ export default function LandingPage() {
                   <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
                 <Button
+                  onClick={handleBuyClick}
                   size="lg"
                   variant="outline"
                   className="border-white/20 text-white hover:bg-white/10 px-8 py-4 text-lg"
                 >
-                  Get Started Free
+                  Buy Now
                 </Button>
               </motion.div>
             </motion.div>
-
             {/* Floating Demo Widget */}
             <motion.div
               className="relative"
@@ -191,7 +217,6 @@ export default function LandingPage() {
               transition={{ duration: 0.8, delay: 0.2 }}
             >
               <div className="relative">
-                {/* Mock Website Background */}
                 <motion.div
                   className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 h-96"
                   whileHover={{ scale: 1.02 }}
@@ -208,18 +233,10 @@ export default function LandingPage() {
                     </div>
                   </div>
                 </motion.div>
-
-                {/* Floating Chatbot Widget */}
                 <motion.div
                   className="absolute bottom-6 right-6 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl p-4 shadow-2xl"
-                  animate={{
-                    y: [0, -10, 0],
-                  }}
-                  transition={{
-                    duration: 3,
-                    repeat: Number.POSITIVE_INFINITY,
-                    ease: "easeInOut",
-                  }}
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
                 >
                   <div className="w-80 bg-white/10 backdrop-blur-xl rounded-xl p-4 space-y-3">
                     <div className="flex items-center space-x-2">
@@ -275,7 +292,6 @@ export default function LandingPage() {
               customer experiences.
             </p>
           </motion.div>
-
           <div className="grid lg:grid-cols-2 gap-8">
             {[
               {
@@ -347,7 +363,6 @@ export default function LandingPage() {
               Watch how SmartBotly transforms customer interactions with intelligent, context-aware responses.
             </p>
           </motion.div>
-
           <motion.div
             className="relative max-w-4xl mx-auto"
             initial={{ opacity: 0, scale: 0.9 }}
@@ -371,7 +386,7 @@ export default function LandingPage() {
                     animate={{ rotate: 360 }}
                     transition={{ duration: 20, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
                   >
-                    🤖
+                    �uva
                   </motion.div>
                 </div>
               </div>
@@ -396,7 +411,6 @@ export default function LandingPage() {
               Start free and scale as you grow. No hidden fees, no surprises.
             </p>
           </motion.div>
-
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
@@ -481,7 +495,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* Testimonials Section */}
       <section className="relative z-10 py-20 px-6">
         <div className="max-w-7xl mx-auto">
           <motion.div
@@ -494,7 +508,6 @@ export default function LandingPage() {
               Loved by businesses worldwide
             </h2>
           </motion.div>
-
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
@@ -563,18 +576,20 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
+                onClick={handleDemoClick}
                 size="lg"
                 className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8 py-4 text-lg group"
               >
-                Start Free Trial
+                Try Demo
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
               <Button
+                onClick={handleBuyClick}
                 size="lg"
                 variant="outline"
                 className="border-white/20 text-white hover:bg-white/10 px-8 py-4 text-lg"
               >
-                Schedule Demo
+                Buy Now
               </Button>
             </div>
           </motion.div>
@@ -610,7 +625,6 @@ export default function LandingPage() {
                 ))}
               </div>
             </div>
-
             <div>
               <h3 className="font-semibold text-white mb-4">Product</h3>
               <ul className="space-y-2">
@@ -623,7 +637,6 @@ export default function LandingPage() {
                 ))}
               </ul>
             </div>
-
             <div>
               <h3 className="font-semibold text-white mb-4">Company</h3>
               <ul className="space-y-2">
@@ -636,7 +649,6 @@ export default function LandingPage() {
                 ))}
               </ul>
             </div>
-
             <div>
               <h3 className="font-semibold text-white mb-4">Contact</h3>
               <ul className="space-y-2">
@@ -655,9 +667,8 @@ export default function LandingPage() {
               </ul>
             </div>
           </div>
-
           <div className="border-t border-white/10 mt-12 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 SmartBotly. All rights reserved.</p>
+            <p>© 2024 SmartBotly. All rights reserved.</p>
           </div>
         </div>
       </footer>
