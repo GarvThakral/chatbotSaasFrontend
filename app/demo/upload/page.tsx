@@ -3,11 +3,12 @@
 import type React from "react"
 
 import { motion } from "framer-motion"
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Bot, Upload, FileText, File, Check, AlertCircle, ArrowLeft, Trash2, Eye } from "lucide-react"
+import axios from "axios"
 
 interface UploadedFile {
   id: string
@@ -22,6 +23,31 @@ interface UploadedFile {
 export default function UploadPage() {
   const [files, setFiles] = useState<UploadedFile[]>([])
   const [dragActive, setDragActive] = useState(false)
+  const [embeddingsExist, setEmbeddingsExist] = useState<boolean | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  async function checkEmbeddingsExist() {
+    try {
+      setIsLoading(true)
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_PYTHON_API_ROUTE}embeddingsExist`, {
+        token: localStorage.getItem("token"),
+      })
+      setEmbeddingsExist(response.data)
+      return response.data
+    } catch (error) {
+      console.error("Error checking embeddings:", error)
+      setEmbeddingsExist(false)
+      return false
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    checkEmbeddingsExist()
+  }, [])
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -55,10 +81,73 @@ export default function UploadPage() {
 
     setFiles((prev) => [...prev, ...newFiles])
 
-    // Simulate upload process
-    newFiles.forEach((file) => {
-      simulateUpload(file.id)
+    // Start real upload for each file
+    fileList.forEach((file, index) => {
+      const newFile = newFiles[index]
+      uploadFile(file, newFile.id)
     })
+  }
+
+  const deleteExistingEmbeddings = async () => {
+    try {
+      setIsDeleting(true)
+      setDeleteError(null)
+
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_PYTHON_API_ROUTE}deleteEmbeddings`, {
+        token: localStorage.getItem("token"),
+      })
+
+      if (response.status === 200) {
+        setEmbeddingsExist(false)
+        setFiles([])
+      } else {
+        setDeleteError("Failed to delete embeddings. Please try again.")
+      }
+    } catch (error) {
+      console.error("Error deleting embeddings:", error)
+      setDeleteError("An error occurred while deleting embeddings. Please try again.")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const uploadFile = async (file: File, fileId: string) => {
+    const formData = new FormData()
+    formData.append("file", file)
+    formData.append("token", localStorage.getItem("token") || "") // Replace with your actual token logic
+
+    try {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_PYTHON_API_ROUTE}embedd`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total!)
+          setFiles((prev) => prev.map((f) => (f.id === fileId ? { ...f, progress: percentCompleted } : f)))
+        },
+      })
+
+      // Mark file as completed
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === fileId
+            ? {
+                ...f,
+                status: "completed",
+                progress: 100,
+                chunks: Math.floor(Math.random() * 20) + 5,
+              }
+            : f,
+        ),
+      )
+
+      // Update embeddings status after successful upload
+      await checkEmbeddingsExist()
+    } catch (error) {
+      console.error("Upload failed:", error)
+      setFiles((prev) => prev.map((f) => (f.id === fileId ? { ...f, status: "error" } : f)))
+    }
   }
 
   const simulateUpload = (fileId: string) => {
@@ -86,8 +175,22 @@ export default function UploadPage() {
     setTimeout(() => clearInterval(interval), 6000)
   }
 
-  const removeFile = (fileId: string) => {
-    setFiles((prev) => prev.filter((file) => file.id !== fileId))
+  const removeFile = async (fileId: string) => {
+    try {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_PYTHON_API_ROUTE}deleteEmbeddings`, {
+        token: localStorage.getItem("token"),
+      })
+      console.log(response)
+      setFiles((prev) => prev.filter((file) => file.id !== fileId))
+
+      // Check if we've removed all files
+      const remainingFiles = files.filter((file) => file.id !== fileId)
+      if (remainingFiles.length === 0) {
+        await checkEmbeddingsExist()
+      }
+    } catch (error) {
+      console.error("Error removing file:", error)
+    }
   }
 
   const formatFileSize = (bytes: number) => {
@@ -169,36 +272,82 @@ export default function UploadPage() {
             </div>
 
             {/* Upload Area */}
-            <Card className="bg-white/5 backdrop-blur-xl border-white/10 p-8 mb-8">
-              <div
-                className={`border-2 border-dashed rounded-xl p-12 text-center transition-all duration-300 ${
-                  dragActive
-                    ? "border-purple-400 bg-purple-500/10"
-                    : "border-white/20 hover:border-white/40 hover:bg-white/5"
-                }`}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
-              >
-                <Upload className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold text-white mb-2">Drop files here or click to upload</h3>
-                <p className="text-gray-400 mb-6">Support for PDF, TXT, DOC, DOCX files up to 10MB each</p>
-                <input
-                  type="file"
-                  multiple
-                  accept=".pdf,.txt,.doc,.docx"
-                  onChange={(e) => e.target.files && handleFiles(Array.from(e.target.files))}
-                  className="hidden"
-                  id="file-upload"
-                />
-                <label htmlFor="file-upload">
-                  <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 cursor-pointer">
-                    Choose Files
+            {isLoading ? (
+              <Card className="bg-white/5 backdrop-blur-xl border-white/10 p-8 mb-8">
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                  <p className="text-gray-400">Checking existing uploads...</p>
+                </div>
+              </Card>
+            ) : embeddingsExist ? (
+              <Card className="bg-white/5 backdrop-blur-xl border-white/10 p-8 mb-8">
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <AlertCircle className="w-8 h-8 text-yellow-400" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-4">Existing Documents Found</h3>
+                  <p className="text-gray-400 mb-6 max-w-lg mx-auto">
+                    You already have documents uploaded and processed for your chatbot. To upload new documents, you'll
+                    need to delete your existing uploads first.
+                  </p>
+
+                  {deleteError && (
+                    <div className="bg-red-500/20 border border-red-500/50 text-red-200 rounded-lg p-4 mb-6 mx-auto max-w-lg">
+                      {deleteError}
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={deleteExistingEmbeddings}
+                    disabled={isDeleting}
+                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Existing Uploads
+                      </>
+                    )}
                   </Button>
-                </label>
-              </div>
-            </Card>
+                </div>
+              </Card>
+            ) : (
+              <Card className="bg-white/5 backdrop-blur-xl border-white/10 p-8 mb-8">
+                <div
+                  className={`border-2 border-dashed rounded-xl p-12 text-center transition-all duration-300 ${
+                    dragActive
+                      ? "border-purple-400 bg-purple-500/10"
+                      : "border-white/20 hover:border-white/40 hover:bg-white/5"
+                  }`}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                >
+                  <Upload className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-2xl font-bold text-white mb-2">Drop files here or click to upload</h3>
+                  <p className="text-gray-400 mb-6">Support for PDF, TXT, DOC, DOCX files up to 10MB each</p>
+                  <input
+                    type="file"
+                    multiple
+                    accept=".pdf,.txt,.doc,.docx"
+                    onChange={(e) => e.target.files && handleFiles(Array.from(e.target.files))}
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <label htmlFor="file-upload">
+                    <span className="inline-block bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-4 py-2 rounded cursor-pointer">
+                      Choose Files
+                    </span>
+                  </label>
+                </div>
+              </Card>
+            )}
 
             {/* File List */}
             {files.length > 0 && (

@@ -1,12 +1,13 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Bot, ArrowLeft, Settings, Code, Eye, Maximize2, Minimize2 } from "lucide-react"
 import SmartBotlyWidget from "@/components/SmartBotlyWidget"
+import axios from "axios"
 
 export default function LiveDemoPage() {
   const [config, setConfig] = useState({
@@ -29,6 +30,20 @@ export default function LiveDemoPage() {
   const [isConnected, setIsConnected] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState<"idle" | "testing" | "connected" | "error">("idle")
   const [errorMessage, setErrorMessage] = useState("")
+
+  useEffect(() => {
+    getApiKey()
+  }, [])
+  async function getApiKey(){
+    const response = await axios.get(`${process.env.NEXT_PUBLIC_API_ROUTE}user/getKey`,{
+      headers:{
+        token:localStorage.getItem("token")
+      }
+    })
+    const key = response.data.key
+    console.log(key)
+    setApiKey(key)
+  }
 
   const handleConfigChange = (key: string, value: any) => {
     setConfig((prev) => ({ ...prev, [key]: value }))
@@ -236,7 +251,7 @@ export default function LiveDemoPage() {
                       <div className="space-y-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-300 mb-2">
-                            OpenAI API Key (Optional)
+                            API Key
                           </label>
                           <div className="space-y-2">
                             <input
@@ -247,7 +262,7 @@ export default function LiveDemoPage() {
                               className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white text-sm"
                             />
                             <p className="text-xs text-gray-400">
-                              Enter your OpenAI API key to get real AI responses. Leave empty for demo responses.
+                              Enter your generated API key to get real AI responses .
                             </p>
                           </div>
                         </div>

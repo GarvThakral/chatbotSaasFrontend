@@ -8,8 +8,11 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Bot, Eye, EyeOff, Mail, Lock, User, Building, ArrowRight } from "lucide-react"
+import axios from "axios"
+import { useRouter } from "next/navigation"
 
 export default function SignupPage() {
+  const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -25,11 +28,17 @@ export default function SignupPage() {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      // Handle signup logic here
-    }, 2000)
+    const response = await axios.post(`${process.env.NEXT_PUBLIC_API_ROUTE}user/signup`,{
+      name:formData.name,
+      email:formData.email,
+      company:formData.company,
+      password:formData.password
+    })
+    if(response.status == 200){
+      router.push("/login")
+    }else{
+      alert("Signup failed")
+    }
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

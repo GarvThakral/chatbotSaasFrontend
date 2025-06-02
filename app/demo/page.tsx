@@ -6,6 +6,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Bot, Copy, Check, Eye, EyeOff, Upload, Settings, Code } from "lucide-react"
+import axios from "axios"
 
 export default function DemoPage() {
   const [apiKey, setApiKey] = useState("")
@@ -14,12 +15,20 @@ export default function DemoPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Simulate API call to get user's API key
-    setTimeout(() => {
-      setApiKey("sk_demo_1234567890abcdef1234567890abcdef")
-      setIsLoading(false)
-    }, 1000)
+    setIsLoading(true)
+    getApiKey()
+    setIsLoading(false)
   }, [])
+  async function getApiKey(){
+    const response = await axios.get(`${process.env.NEXT_PUBLIC_API_ROUTE}user/getKey`,{
+      headers:{
+        token:localStorage.getItem("token")
+      }
+    })
+    const key = response.data.key
+    console.log(key)
+    setApiKey(key)
+  }
 
   const copyToClipboard = async () => {
     try {
@@ -113,14 +122,6 @@ export default function DemoPage() {
             <Card className="bg-white/5 backdrop-blur-xl border-white/10 p-8 mb-8">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-white">Your API Key</h2>
-                <Button
-                  onClick={regenerateApiKey}
-                  variant="outline"
-                  className="border-white/20 text-white hover:bg-white/10"
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Generating..." : "Regenerate"}
-                </Button>
               </div>
 
               <div className="space-y-4">

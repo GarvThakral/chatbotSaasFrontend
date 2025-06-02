@@ -1,11 +1,13 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Bot, ArrowLeft, Palette, Settings, Save, Eye } from "lucide-react"
+import { Bot, ArrowLeft, Palette, Settings, Save } from "lucide-react"
+import SmartBotlyWidget from "@/components/SmartBotlyWidget"
+import axios from "axios"
 
 export default function CustomizePage() {
   const [config, setConfig] = useState({
@@ -24,10 +26,67 @@ export default function CustomizePage() {
     soundEnabled: true,
   })
 
-  const [previewOpen, setPreviewOpen] = useState(false)
+  // API Key states (mirroring LiveDemoPage)
+  const [apiKey, setApiKey] = useState("")
+  const [isConnected, setIsConnected] = useState(false)
+  const [connectionStatus, setConnectionStatus] = useState<"idle" | "testing" | "connected" | "error">("idle")
+  const [errorMessage, setErrorMessage] = useState("")
+
+  // Fetch API key on mount
+  useEffect(() => {
+    getApiKey()
+  }, [])
+
+  async function getApiKey() {
+    try {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_ROUTE}user/getKey`, {
+        headers: {
+          token: localStorage.getItem("token")
+        }
+      })
+      const key = response.data.key
+      console.log(key)
+      setApiKey(key)
+    } catch (error) {
+      console.error("Error fetching API key:", error)
+      setErrorMessage("Failed to fetch API key. Please enter it manually.")
+    }
+  }
 
   const handleConfigChange = (key: string, value: any) => {
     setConfig((prev) => ({ ...prev, [key]: value }))
+  }
+
+  const testConnection = async () => {
+    if (!apiKey) return
+
+    setConnectionStatus("testing")
+    setErrorMessage("")
+
+    try {
+      const response = await fetch("/api/test-connection", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ apiKey }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setConnectionStatus("connected")
+        setIsConnected(true)
+      } else {
+        setConnectionStatus("error")
+        setErrorMessage(data.error || "Failed to connect to OpenAI API")
+        setIsConnected(false)
+      }
+    } catch (error) {
+      setConnectionStatus("error")
+      setErrorMessage("Network error. Please try again.")
+      setIsConnected(false)
+    }
   }
 
   const positions = [
@@ -276,6 +335,64 @@ export default function CustomizePage() {
                   </div>
                 </Card>
 
+                {/* API Configuration */}
+                <Card className="bg-white/5 backdrop-blur-xl border-white/10 p-6">
+                  <div className="flex items-center space-x-2 mb-6">
+                    <Settings className="w-5 h-5 text-purple-400" />
+                    <h2 className="text-xl font-bold text-white">API Configuration</h2>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">API Key</label>
+                      <div className="space-y-2">
+                        <input
+                          type="password"
+                          value={apiKey}
+                          onChange={(e) => setApiKey(e.target.value)}
+                          placeholder="sk-..."
+                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white text-sm"
+                        />
+                        <p className="text-xs text-gray-400">
+                          Enter your generated API key to get real AI responses.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <Button
+                        onClick={testConnection}
+                        disabled={!apiKey || connectionStatus === "testing"}
+                        size="sm"
+                        className="bg-blue-500 hover:bg-blue-600"
+                      >
+                        {connectionStatus === "testing" ? "Testing..." : "Test Connection"}
+                      </Button>
+
+                      {isConnected && (
+                        <div className="flex items-center space-x-2 text-green-400 text-sm">
+                          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                          <span>Connected</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {errorMessage && (
+                      <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                        <p className="text-red-400 text-sm">{errorMessage}</p>
+                      </div>
+                    )}
+
+                    {connectionStatus === "connected" && (
+                      <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                        <p className="text-green-400 text-sm">
+                          ✅ API key is valid! Your demo will now use real AI responses.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+
                 {/* Advanced Options */}
                 <Card className="bg-white/5 backdrop-blur-xl border-white/10 p-6">
                   <h2 className="text-xl font-bold text-white mb-6">Advanced Options</h2>
@@ -342,14 +459,6 @@ export default function CustomizePage() {
 
                 {/* Save Button */}
                 <div className="flex space-x-4">
-                  <Button
-                    onClick={() => setPreviewOpen(!previewOpen)}
-                    variant="outline"
-                    className="flex-1 border-white/20 text-white hover:bg-white/10"
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                    {previewOpen ? "Hide Preview" : "Show Preview"}
-                  </Button>
                   <Link href="/demo/integrate" className="flex-1">
                     <Button className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600">
                       <Save className="w-4 h-4 mr-2" />
@@ -362,7 +471,17 @@ export default function CustomizePage() {
               {/* Preview Panel */}
               <div className="lg:sticky lg:top-8">
                 <Card className="bg-white/5 backdrop-blur-xl border-white/10 p-6">
-                  <h2 className="text-xl font-bold text-white mb-6">Live Preview</h2>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-bold text-white">Live Preview</h2>
+                    {apiKey && isConnected && (
+                      <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
+                        Real AI Enabled
+                      </span>
+                    )}
+                    {!apiKey && (
+                      <span className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded text-xs">Demo Mode</span>
+                    )}
+                  </div>
 
                   {/* Mock Website */}
                   <div className="bg-white rounded-lg p-6 relative h-96 overflow-hidden">
@@ -377,70 +496,23 @@ export default function CustomizePage() {
                       </div>
                     </div>
 
-                    {/* Chatbot Widget */}
-                    <div
-                      className={`absolute ${
-                        config.position === "bottom-right"
-                          ? "bottom-4 right-4"
-                          : config.position === "bottom-left"
-                            ? "bottom-4 left-4"
-                            : config.position === "top-right"
-                              ? "top-4 right-4"
-                              : "top-4 left-4"
-                      }`}
-                    >
-                      {previewOpen ? (
-                        <div className="w-80 bg-white rounded-2xl shadow-2xl border overflow-hidden">
-                          <div
-                            className="p-4 text-white flex items-center justify-between"
-                            style={{ backgroundColor: config.primaryColor }}
-                          >
-                            <div className="flex items-center space-x-2">
-                              <span className="text-2xl">{config.chatbotAvatar}</span>
-                              <div>
-                                <div className="font-semibold">{config.chatbotName}</div>
-                                <div className="text-xs opacity-80">Online</div>
-                              </div>
-                            </div>
-                            <button onClick={() => setPreviewOpen(false)} className="text-white/80 hover:text-white">
-                              ×
-                            </button>
-                          </div>
-                          <div className="p-4 h-64 overflow-y-auto bg-gray-50">
-                            <div className="bg-white rounded-lg p-3 shadow-sm mb-3">
-                              <div className="flex items-start space-x-2">
-                                <span className="text-lg">{config.chatbotAvatar}</span>
-                                <div className="text-sm text-gray-800">{config.greeting}</div>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="p-4 border-t">
-                            <div className="flex space-x-2">
-                              <input
-                                type="text"
-                                placeholder="Type your message..."
-                                className="flex-1 px-3 py-2 border rounded-lg text-sm"
-                                disabled
-                              />
-                              <button
-                                className="px-4 py-2 text-white rounded-lg text-sm"
-                                style={{ backgroundColor: config.primaryColor }}
-                              >
-                                Send
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setPreviewOpen(true)}
-                          className="w-14 h-14 rounded-full text-white shadow-lg flex items-center justify-center text-2xl hover:scale-110 transition-transform"
-                          style={{ backgroundColor: config.primaryColor }}
-                        >
-                          {config.chatbotAvatar}
-                        </button>
-                      )}
-                    </div>
+                    <SmartBotlyWidget
+                      apiKey="demo-key"
+                      chatbotName={config.chatbotName}
+                      greeting={config.greeting}
+                      primaryColor={config.primaryColor}
+                      secondaryColor={config.secondaryColor}
+                      position={config.position as "bottom-right" | "bottom-left" | "top-right" | "top-left"}
+                      theme={config.theme as "auto" | "dark" | "light"}
+                      chatbotAvatar={config.chatbotAvatar}
+                      userAvatar={config.userAvatar}
+                      mood={config.mood as "friendly" | "professional" | "casual" | "formal"}
+                      autoOpen={config.autoOpen}
+                      showBranding={config.showBranding}
+                      zIndex={1000}
+                      realApiKey={apiKey}
+                      isDemo={true}
+                    />
                   </div>
 
                   {/* Configuration Summary */}
