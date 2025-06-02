@@ -24,15 +24,20 @@ import { useRouter } from "next/navigation"
 export default function LandingPage() {
   const router = useRouter()
   const [isScrolled, setIsScrolled] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false) // New state for login status
+  const [isLoading, setIsLoading] = useState(true) // Loading state to prevent hydration mismatch
 
-  // Check if the user is logged in
+  // Check if the user is logged in - SAFE VERSION
   const checkLoginStatus = () => {
-    return localStorage.getItem("token") !== null
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem("token") !== null
+    }
+    return false
   }
 
   // Handle "Try Demo" button click
   const handleDemoClick = () => {
-    if (checkLoginStatus()) {
+    if (isLoggedIn) {
       router.push("/demo")
     } else {
       router.push("/login")
@@ -41,7 +46,7 @@ export default function LandingPage() {
 
   // Handle "Buy Now" button click
   const handleBuyClick = () => {
-    if (checkLoginStatus()) {
+    if (isLoggedIn) {
       router.push("/billing") // Redirect to Razorpay billing
     } else {
       router.push("/login")
@@ -50,11 +55,18 @@ export default function LandingPage() {
 
   // Handle "Logout" button click
   const handleLogout = () => {
-    localStorage.removeItem("token")
-    router.push("/")
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem("token")
+      setIsLoggedIn(false)
+      router.push("/")
+    }
   }
 
   useEffect(() => {
+    // Check login status only on client side
+    setIsLoggedIn(checkLoginStatus())
+    setIsLoading(false)
+    
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50)
     }
@@ -62,6 +74,10 @@ export default function LandingPage() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
+  // Show a loading state until we've checked login status
+  if (isLoading) {
+    return <div className="min-h-screen bg-black"></div>
+  }
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden">
       {/* Animated Background */}
