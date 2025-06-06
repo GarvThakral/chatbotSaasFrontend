@@ -167,7 +167,7 @@ export default function DemoPage() {
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">Upload Documents</h3>
                   <p className="text-gray-400 mb-4">Train your chatbot with your business documents and FAQs.</p>
-                  <Link href="/demo/upload">
+                  <Link href="/upload">
                     <Button className="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600">
                       Upload Now
                     </Button>
@@ -182,7 +182,7 @@ export default function DemoPage() {
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">Customize Chatbot</h3>
                   <p className="text-gray-400 mb-4">Personalize your chatbot's appearance and behavior.</p>
-                  <Link href="/demo/customize">
+                  <Link href="/customize">
                     <Button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
                       Customize
                     </Button>
@@ -197,7 +197,7 @@ export default function DemoPage() {
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">Integration Code</h3>
                   <p className="text-gray-400 mb-4">Get the embed code for your website integration.</p>
-                  <Link href="/demo/integrate">
+                  <Link href="/integrate">
                     <Button className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600">
                       Get Code
                     </Button>

@@ -363,53 +363,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Demo Preview Section */}
-      <section className="relative z-10 py-20 px-6">
-        <div className="max-w-7xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mb-16"
-          >
-            <h2 className="text-4xl lg:text-5xl font-bold mb-6 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-              See it in action
-            </h2>
-            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              Watch how SmartBotly transforms customer interactions with intelligent, context-aware responses.
-            </p>
-          </motion.div>
-          <motion.div
-            className="relative max-w-4xl mx-auto"
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-3xl p-8 backdrop-blur-sm border border-white/10">
-              <div className="bg-black/50 rounded-2xl p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-red-500 rounded-full" />
-                    <div className="w-3 h-3 bg-yellow-500 rounded-full" />
-                    <div className="w-3 h-3 bg-green-500 rounded-full" />
-                  </div>
-                  <div className="text-sm text-gray-400">your-website.com</div>
-                </div>
-                <div className="h-64 bg-white/5 rounded-xl flex items-center justify-center">
-                  <motion.div
-                    className="text-6xl"
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 20, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                  >
-                    �uva
-                  </motion.div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
 
       {/* Pricing Section */}
       <section id="pricing" className="relative z-10 py-20 px-6">
