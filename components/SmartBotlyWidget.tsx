@@ -12,6 +12,11 @@ interface Message {
   text: string
   sender: "user" | "bot"
   timestamp: Date
+  options?: Array<{
+    id: string
+    text: string
+    value: string
+  }>
 }
 
 interface SmartBotlyWidgetProps {
@@ -69,13 +74,19 @@ export default function SmartBotlyWidget({
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      // Add initial greeting message
+      // Add initial greeting message with options
       setMessages([
         {
           id: "greeting",
           text: greeting,
           sender: "bot",
           timestamp: new Date(),
+          options: [
+            { id: "1", text: "📅 Schedule an appointment", value: "schedule_appointment" },
+            { id: "2", text: "💰 View pricing plans", value: "view_pricing" },
+            { id: "3", text: "❓ Get help & support", value: "get_support" },
+            { id: "4", text: "📞 Contact us", value: "contact_us" },
+          ],
         },
       ])
     }
@@ -124,6 +135,109 @@ export default function SmartBotlyWidget({
   }
 
   const themeClasses = getThemeClasses()
+
+  const handleOptionClick = async (optionValue: string, optionText: string) => {
+    // Add user message with the selected option
+    const userMessage = {
+      id: Date.now().toString(),
+      text: optionText,
+      sender: "user" as const,
+      timestamp: new Date(),
+    }
+    setMessages((prev) => [...prev, userMessage])
+
+    // Process the option value as if it was typed
+    setIsLoading(true)
+    setIsTyping(true)
+
+    try {
+      if (realApiKey === "") {
+        alert("Enter an api key")
+        return
+      }
+
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_ROUTE}user/remainingCalls`,
+        {
+          apiKey: realApiKey,
+        },
+        {
+          headers: {
+            token: localStorage.getItem("token"),
+          },
+        },
+      )
+
+      if (response.status === 202) {
+        alert("Api key not valid")
+        return
+      }
+
+      const remainingCalls = response.data.response.apiCalls
+      if (remainingCalls <= 0) {
+        const botMessage = {
+          id: (Date.now() + 1).toString(),
+          text: "You are out of demo messages, please purchase a plan to continue",
+          sender: "bot" as const,
+          timestamp: new Date(),
+        }
+        setMessages((prev) => [...prev, botMessage])
+        return
+      }
+
+      const token = localStorage.getItem("token")
+      const apiResponse = await axios.post(`${process.env.NEXT_PUBLIC_PYTHON_API_ROUTE}ask`, {
+        user_id: token,
+        question: optionValue, // Use the option value for processing
+        api_key: realApiKey,
+      })
+
+      if (apiResponse.status === 200) {
+        const data = apiResponse.data
+        const botResponse = data.result
+
+        // Parse response to check if it contains options
+        let botMessage: Message
+        try {
+          const parsedResponse = JSON.parse(botResponse)
+          if (parsedResponse.text && parsedResponse.options) {
+            botMessage = {
+              id: (Date.now() + 1).toString(),
+              text: parsedResponse.text,
+              sender: "bot" as const,
+              timestamp: new Date(),
+              options: parsedResponse.options,
+            }
+          } else {
+            throw new Error("Not a structured response")
+          }
+        } catch {
+          // If not JSON or doesn't have expected structure, treat as regular text
+          botMessage = {
+            id: (Date.now() + 1).toString(),
+            text: botResponse,
+            sender: "bot" as const,
+            timestamp: new Date(),
+          }
+        }
+
+        setMessages((prev) => [...prev, botMessage])
+      }
+    } catch (error) {
+      console.error("Error sending message:", error)
+      const errorMessage = "I'm having trouble connecting right now. Please try again later."
+      const errorBotMessage = {
+        id: (Date.now() + 1).toString(),
+        text: errorMessage,
+        sender: "bot" as const,
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, errorBotMessage])
+    } finally {
+      setIsLoading(false)
+      setIsTyping(false)
+    }
+  }
 
   const sendMessage = async () => {
     if (realApiKey == "") {
@@ -182,7 +296,7 @@ export default function SmartBotlyWidget({
 
     try {
       const token = localStorage.getItem("token")
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_PYTHON_API_ROUTE}ask`, {
+      const response = await axios.post("http://localhost:8000/ask", {
         user_id: token,
         question: userMessage.text,
         api_key: realApiKey,
@@ -196,13 +310,31 @@ export default function SmartBotlyWidget({
       const data = response.data
       const botResponse = data.result
 
-      // Add the bot's message to the chat
-      const botMessage = {
-        id: (Date.now() + 1).toString(),
-        text: botResponse,
-        sender: "bot" as const,
-        timestamp: new Date(),
+      // Parse response to check if it contains options
+      let botMessage: Message
+      try {
+        const parsedResponse = JSON.parse(botResponse)
+        if (parsedResponse.text && parsedResponse.options) {
+          botMessage = {
+            id: (Date.now() + 1).toString(),
+            text: parsedResponse.text,
+            sender: "bot" as const,
+            timestamp: new Date(),
+            options: parsedResponse.options,
+          }
+        } else {
+          throw new Error("Not a structured response")
+        }
+      } catch {
+        // If not JSON or doesn't have expected structure, treat as regular text
+        botMessage = {
+          id: (Date.now() + 1).toString(),
+          text: botResponse,
+          sender: "bot" as const,
+          timestamp: new Date(),
+        }
       }
+
       setMessages((prev) => [...prev, botMessage])
 
       // Play a sound if you've got that enabled
@@ -346,6 +478,34 @@ export default function SmartBotlyWidget({
                             >
                               <p className="text-sm leading-relaxed break-words">{message.text}</p>
                             </div>
+                            {message.sender === "bot" && message.options && (
+                              <div className="mt-3 space-y-2">
+                                {message.options.map((option) => (
+                                  <motion.button
+                                    key={option.id}
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => handleOptionClick(option.value, option.text)}
+                                    className="block w-full text-left px-3 py-2 text-sm rounded-lg border transition-all hover:shadow-sm"
+                                    style={{
+                                      borderColor: `${primaryColor}40`,
+                                      backgroundColor: `${primaryColor}10`,
+                                      color: theme === "light" ? "#374151" : "#E5E7EB",
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.backgroundColor = `${primaryColor}20`
+                                      e.currentTarget.style.borderColor = `${primaryColor}60`
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.backgroundColor = `${primaryColor}10`
+                                      e.currentTarget.style.borderColor = `${primaryColor}40`
+                                    }}
+                                  >
+                                    {option.text}
+                                  </motion.button>
+                                ))}
+                              </div>
+                            )}
                             <p className="text-xs text-gray-500 mt-1 px-2">{formatTime(message.timestamp)}</p>
                           </div>
                           {message.sender === "user" && (
@@ -393,7 +553,6 @@ export default function SmartBotlyWidget({
                         disabled={isLoading}
                         className={`w-full px-4 py-3 rounded-2xl border focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all ${themeClasses.input}`}
                         style={{
-                          outlineColor: primaryColor ,
                           resize: "none",
                         }}
                       />
